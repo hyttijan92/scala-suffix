@@ -25,6 +25,7 @@ import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
+import org.apache.maven.plugins.annotations.ResolutionScope;
 import org.apache.maven.project.MavenProject;
 
 import java.io.File;
@@ -37,8 +38,9 @@ import java.util.Set;
  * Modifies MANIFEST.MF in the given Scala dependencies, removing the Scala version suffix from the module name
  *
  */
-@Mojo(name = "suffix", defaultPhase = LifecyclePhase.INITIALIZE)
+@Mojo(name = "suffix", defaultPhase = LifecyclePhase.INITIALIZE, requiresDependencyResolution = ResolutionScope.COMPILE )
 public final class SufFixMojo extends AbstractMojo {
+
     @Parameter(defaultValue = "${project}", required = true, readonly = true)
     private MavenProject project;
 
@@ -56,35 +58,37 @@ public final class SufFixMojo extends AbstractMojo {
     });
 
     final private Lazy<Set<Artifact>> artifacts =
-        Lazy.of(() -> (Set<Artifact>)Collections.unmodifiableSet(project.getDependencyArtifacts()));
+            Lazy.of(() -> (Set<Artifact>)Collections.unmodifiableSet(project.getArtifacts()));
 
     private Optional<Tuple2<File, String>> findManifestToFix(String libraryName) {
+
         if (libraryName.contains(":")) {
             var split = libraryName.split(":");
             if (split.length > 1) {
                 final var groupId = split[0].trim();
                 final var artifactId = split[1].trim();
                 return artifacts.get().stream()
-                    .filter(art -> art.getGroupId().toLowerCase().contains(groupId) && art.getArtifactId().toLowerCase().contains(artifactId))
-                    .findAny()
-                    .map(art -> Tuple.of(art.getFile(), libraryName));
+                        .filter(art -> art.getGroupId().toLowerCase().contains(groupId) && art.getArtifactId().toLowerCase().contains(artifactId))
+                        .findAny()
+                        .map(art -> Tuple.of(art.getFile(), libraryName));
             } else {
                 error("scala-suffix invalid param: " + libraryName);
                 return Optional.empty();
             }
         } else {
+
             return artifacts.get().stream()
-                .filter(art -> art.getArtifactId().trim().toLowerCase().contains(libraryName))
-                .findAny()
-                .map(art -> Tuple.of(art.getFile(), libraryName));
+                    .filter(art -> art.getArtifactId().trim().toLowerCase().contains(libraryName))
+                    .findAny()
+                    .map(art -> Tuple.of(art.getFile(), libraryName));
         }
     }
 
     public void execute() {
         libraries.stream()
-                 .map(this::findManifestToFix)
-                 .flatMap(Optional::stream)
-                 .forEach(this::fixManifest);
+                .map(this::findManifestToFix)
+                .flatMap(Optional::stream)
+                .forEach(this::fixManifest);
     }
 
     private void fixManifest(Tuple2<File, String> tuple) {

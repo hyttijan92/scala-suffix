@@ -2,6 +2,8 @@
 
 A Maven plugin which fixes Scala dependencies incompatible with Java 9+. 
 
+This is a fork from [scala-suffix](https://github.com/makingthematrix/scala-suffix). The fork contains fix for transitive Maven dependencies and the work is still in progress.
+
 ### A bit of context
 
 First of all, you need this plugin only in a corner case situation when:
